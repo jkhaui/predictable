@@ -1,0 +1,29 @@
+body {
+    background-color: #263238;
+}
+
+[contenteditable=true]:empty:before {
+    content: attr(placeholder);
+    color: grey;
+    display: block;
+}
+
+#suggestion__container:focus {
+    outline: none;
+    user-select: none;
+}
+
+.autoComplete_result:focus {
+    user-select: none;
+    outline: none;
+    cursor: default;
+}
+
+@-moz-document url-prefix() {
+    #autoComplete {
+        border-width: 1px;
+        background-size: 1.2rem;
+        background-origin: border-box;
+        background-position: center;
+    }
+}
