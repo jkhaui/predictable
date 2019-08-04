@@ -6,11 +6,11 @@ seminal example being Gmail's "Smart Compose feature". Pressing the Tab key will
 phrase.
 <br />
 <h3>Quick Start</h3>
-`> git clone https://github.com/jkhaui/predictable`
+> `git clone https://github.com/jkhaui/predictable`
 <br />
-`> npm install`
+> `npm install`
 <br />
-`> npm start`
+> `npm start`
 
 <br />
 This project is bootstrapped with create-react-app. It also uses Medium-Editor as a solid
