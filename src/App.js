@@ -1,19 +1,21 @@
 import React, { Component } from 'react';
+import MediumEditor from 'medium-editor';
 import Predictable from './predictable/predictable';
 import { generateRandomId } from './predictable/utils';
 import { words } from './words';
 
 class App extends Component {
-    // Enforce same styling across editor text and overlay text for visual alignment.
-    font = 'Arial, serif!important';
-    fontSize = '16.63px!important';
-    letterSpacing = '0!important';
+    editorContainer = React.createRef();
 
     constructor(props) {
         super( props );
         this.state = {
             predictableContainerId: `${ generateRandomId() }-${ generateRandomId() }`,
-            editorId: `${ generateRandomId() }-${ generateRandomId() }`
+            editorId: `${ generateRandomId() }-${ generateRandomId() }`,
+            mediumEditor: null,
+            font: 'Arial, serif!important',
+            fontSize: '16.63px!important',
+            letterSpacing: '0!important'
         };
     }
 
@@ -23,16 +25,56 @@ class App extends Component {
         if ( key && key === 'Tab' ) {
             e.preventDefault();
         }
-
+/*
+        // TODO: Use control key + up/down to cycle through multiple suggestions.
         if ( e.ctrlKey && ( key === 'ArrowUp' || key === 'ArrowDown' ) ) {
             e.preventDefault();
         }
+
+ */
     };
 
     componentDidMount() {
-        document.addEventListener( 'keydown', this.preventTabDefault );
+        new MediumEditor(
+            this.editorContainer.current,
+            {
+                placeholder: {
+                    text: 'Start writing...'
+                },
+                toolbar: true,
+                autoLink: false,
+                imageDragging: false,
+                disableExtraSpaces: true
+            }
+        );
 
         const editor = document.getElementById( this.state.editorId );
+        editor.addEventListener( 'keydown', this.preventTabDefault );
+        editor.addEventListener( 'keyup', e => {
+            const predictableContainer = document.getElementById( this.state.predictableContainerId );
+            predictableContainer.style.display = 'none';
+
+            if ( predictableContainer &&
+                predictableContainer.firstChild &&
+                predictableContainer.firstChild.firstChild.data !== '' &&
+                e.key &&
+                e.key !== 'Backspace' &&
+                e.key !== 'Enter' &&
+                // Only check for suggested phrases if the user is typing at the end of the document.
+                this.isCaretAtEnd( editor )
+            ) {
+                const incompleteText = document.getSelection().anchorNode;
+
+                if ( incompleteText ) {
+                    const { top, left } = this.getLastWordCoordinates();
+                    // We create the visual effect of a placeholder element by overlaying the
+                    // suggestion container at the exact position of the incomplete text.
+                    predictableContainer.style.top = `${ top }px`;
+                    predictableContainer.style.left = `${ left }px`;
+                    predictableContainer.style.display = 'inline';
+                }
+            }
+        } );
         editor.style.cssText = `
             width: 826px;
             min-height: 970px;
@@ -48,9 +90,9 @@ class App extends Component {
             padding-right: 96px!important;
             border: 1px solid #80808082;
             position: relative;
-            font-family: ${ this.font };
-            font-size: ${ this.fontSize };
-            letter-spacing: ${ this.letterSpacing };
+            font-family: ${ this.state.font };
+            font-size: ${ this.state.fontSize };
+            letter-spacing: ${ this.state.letterSpacing };
             line-height: 1.7rem;
             outline: none;
         `;
@@ -62,14 +104,13 @@ class App extends Component {
             editor: editor,
             sensitivity: 3,
             predictableContainer: {
-                render: true,
                 container: (source) => {
                     source.setAttribute( 'id', this.state.predictableContainerId );
                     source.style.cssText = `
                         display: none;
-                        font-family: ${ this.font };
-                        font-size: ${ this.fontSize };
-                        letter-spacing: ${ this.letterSpacing };
+                        font-family: ${ this.state.font };
+                        font-size: ${ this.state.fontSize };
+                        letter-spacing: ${ this.state.letterSpacing };
                         -webkit-user-modify: read-only;
                         user-select: none;
                         cursor: text;
@@ -83,24 +124,21 @@ class App extends Component {
                         opacity: 0.7;
                         overflow: hidden;
                     `;
-                },
-                destination: editor,
-                element: 'div'
+                }
             },
-            resultItem: {
+            suggestionText: {
                 content: ({ match }, source) => {
                     source.textContent = match;
-                },
-                element: 'span'
+                }
             },
             context: {
-                manipulate: () => {
+                getData: () => {
                     this.getLastWordCoordinates();
 
                     return this.getLastWord();
                 }
             },
-            onTabPress: (data) => {
+            onTabPress: () => {
                 const incompleteText = document.getSelection().anchorNode,
                     range = document.createRange();
 
@@ -115,36 +153,9 @@ class App extends Component {
                 }
 
                 let autocompleteText = document.querySelector( '.predictable__suggestion' ).firstChild.data;
-
                 autocompleteText = autocompleteText.replace( _incompleteText, '' );
 
-                this.insertTextAtCursor( this.state.editorId, autocompleteText );
-            }
-        } );
-
-
-        editor.addEventListener( 'keyup', e => {
-            const predictableContainer = document.getElementById( this.state.predictableContainerId );
-            predictableContainer.style.display = 'none';
-
-            if ( predictableContainer &&
-                predictableContainer.firstChild &&
-                predictableContainer.firstChild.firstChild.data !== '' &&
-                e.key &&
-                e.key !== 'Backspace' &&
-                e.key !== 'Enter' &&
-                this.isCaretAtEnd( document.getElementById( this.state.editorId ) )
-            ) {
-                const incompleteText = document.getSelection().anchorNode;
-
-                if ( incompleteText ) {
-                    const { top, left } = this.getLastWordCoordinates();
-                    // We create the visual effect of a placeholder element by overlaying the
-                    // suggestion container at the exact position of the incomplete text.
-                    predictableContainer.style.top = `${ top }px`;
-                    predictableContainer.style.left = `${ left }px`;
-                    predictableContainer.style.display = 'inline';
-                }
+                this.insertTextAtCursor( this.editorContainer.current, autocompleteText );
             }
         } );
     }
@@ -170,6 +181,8 @@ class App extends Component {
         range.setEnd( anchorNode, lastWordOffset );
         range.collapse( false );
 
+        // Create a `shadowNode`, which is an invisible DOM node that allows the coordinates of the following
+        // word to be calculated.
         const shadowNode = document.createElement( 'span' );
         shadowNode.id = generateRandomId();
         shadowNode.appendChild( document.createTextNode( '' ) );
@@ -180,6 +193,7 @@ class App extends Component {
         const { top, left } = shadowNode.getBoundingClientRect(),
             parentNode = shadowNode.parentElement;
 
+        // Rejoins the text nodes which have been split by inserting the shadow node.
         parentNode.normalize();
         parentNode.removeChild( shadowNode );
 
@@ -227,7 +241,7 @@ class App extends Component {
         return caretEndPosition;
     };
 
-    insertTextAtCursor = (id, text) => {
+    insertTextAtCursor = (editor, text) => {
         let selection,
             range;
 
@@ -239,8 +253,8 @@ class App extends Component {
                 range.insertNode( document.createTextNode( text ) );
             }
         }
-
-        this.placeCaretAtEnd( document.getElementById( id ) );
+        // TODO: Fix issue with Firefox pushing caret to new paragraph
+        this.placeCaretAtEnd( editor );
     };
 
     placeCaretAtEnd = (editor) => {
@@ -261,7 +275,10 @@ class App extends Component {
     render() {
         return (
             <div className="App">
-                <div id={ this.state.editorId } contentEditable={ true } />
+                <div
+                    id={ this.state.editorId }
+                    ref={ this.editorContainer }
+                />
             </div>
         );
     }

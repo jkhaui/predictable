@@ -8,26 +8,26 @@ export default class Predictable {
         this.editor = options.editor;
         this.active = false;
         this.data = {
+            // Data for suggested phrases can be obtained in numerous ways. E.g. a single static source can be used,
+            // or a function can be passed to hydrate initial suggestions from a list before switching to a dynamic
+            // data source.
             source: () => ( typeof options.data.source === 'function' ? options.data.source() : options.data.source ),
             cache: false
         };
         this.context = options.context;
         this.sensitivity = options.sensitivity || 3;
         this.predictableContainer = {
-            render: true,
-            view: options.predictableContainer && options.predictableContainer.render
-                ? predictableMethods.createResultsList( {
-                    container: options.predictableContainer && options.predictableContainer.container
-                        ? options.predictableContainer.container
-                        : false,
-                    destination: options.editor,
-                    position: 'afterend',
-                    element: 'div',
-                } )
-                : null,
+            view: predictableMethods.createResultsList( {
+                container: options.predictableContainer && options.predictableContainer.container
+                    ? options.predictableContainer.container
+                    : false,
+                destination: options.editor,
+                position: 'afterend',
+                element: 'div',
+            } ),
         };
-        this.resultItem = {
-            content: options.resultItem && options.resultItem.content ? options.resultItem.content : false,
+        this.suggestionText = {
+            content: options.suggestionText && options.suggestionText.content ? options.suggestionText.content : false,
             element: 'span'
         };
         this.onTabPress = options.onTabPress;
@@ -43,8 +43,8 @@ export default class Predictable {
     }
 
     lookupSuggestions = (currentText, suggestion) => {
-        // Use `startsWith` instead of `includes` method to avoid rendering visually misaligned
-        // multi-word phrases.
+        // Use `startsWith` method to ensure that only predictions exactly matching the currently typed word
+        // are rendered. Otherwise, the prediction container's visual alignment will be thrown off.
         if ( suggestion.startsWith( currentText ) ) {
             return suggestion;
         }
@@ -67,9 +67,8 @@ export default class Predictable {
 
             const firstSuggestion = allSuggestions.slice( 0, 1 );
 
-            if ( this.predictableContainer.render ) {
-                predictableMethods.insertSuggestion( this.predictableContainer.view, allSuggestions, this.resultItem );
-            }
+            predictableMethods.insertSuggestion( this.predictableContainer.view, allSuggestions, this.suggestionText );
+
             return resolve( {
                 matches: allSuggestions.length,
                 list: firstSuggestion
@@ -81,7 +80,7 @@ export default class Predictable {
         const getAllSuggestions = (e) => {
             const text = this.editor.textContent;
             const currentText = ( this.queryValue =
-                this.context && this.context.manipulate ? this.context.manipulate( text ) : text );
+                this.context && this.context.getData ? this.context.getData( text ) : text );
             const triggerCondition = ( currentText
                 ? currentText.length > this.sensitivity && currentText.replace( / /g, '' ).length
                 : '' );

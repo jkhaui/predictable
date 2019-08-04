@@ -6,7 +6,7 @@ const select = {
     result: `${ generateRandomId() }-${ generateRandomId() }`
 };
 
-const getInput = (selector) => selector;
+const getContent = (selector) => selector;
 
 const createResultsList = (renderResults) => {
     const { container, position, element, destination } = renderResults;
@@ -50,7 +50,6 @@ const getSelection = (predictableContainerId, editor, resultsList, callback, res
             predictableContainer.firstChild &&
             predictableContainer.firstChild.firstChild.data !== ''
         ) {
-            // Callback function invoked on user selection
             callback( {
                 event: e,
                 context: editor.innerHTML,
@@ -62,7 +61,6 @@ const getSelection = (predictableContainerId, editor, resultsList, callback, res
                 } ),
             } );
 
-            // Clear Results after selection is made
             clearResults( resultsList );
             document.removeEventListener( 'keyup', tabListener );
         }
@@ -70,7 +68,7 @@ const getSelection = (predictableContainerId, editor, resultsList, callback, res
 };
 
 export const predictableMethods = {
-    getInput,
+    getInput: getContent,
     createResultsList,
     insertSuggestion,
     clearResults,

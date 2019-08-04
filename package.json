@@ -1,9 +1,9 @@
 {
-  "name": "autocompletecontent",
+  "name": "predictable",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "compromise": "^11.14.2",
+    "medium-editor": "^5.23.3",
     "node-sass": "^4.12.0",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
