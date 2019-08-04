@@ -27,3 +27,7 @@ autocomplete placeholder to appear misaligned if applied at the very beginning o
 <br />
 This example uses a large corpus of phrases related to the legal domain, but they can be easily swapped
 out for another data source. Improvements and PRs are highly welcomed.
+<br />
+Demo:
+
+<img src="http://bit.ly/2LRQ5Nc" />
